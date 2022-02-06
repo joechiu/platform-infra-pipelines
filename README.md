@@ -13,6 +13,8 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 * Peering Virtual Networks
 * Create VHub Connections
 * Generate VM Hashicorp
+* Create AKS Cluster
+* Create SQL Server in AKS Cluster
 * Create Virtual Machines
 * Create Teamcity VM
 * Create RabbitMQ VM
@@ -26,11 +28,11 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 * Create Windows Application (Skipped)
 * Create IaC Service
 * Create Private DNS Links
-* Clean Up
 * Azure VPN Client Connection / Access
 * VM Conneciton / Access
 * SSMS Connection
 * Private DNS Connection
+* Clean Up
 
 ### Systems and Tools
 
@@ -39,8 +41,7 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 * Working Environment to Azure Cloud
 * Azure DevOps Pipelins
 * Docker self-host agent for Azure DevOps (https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/docker?view=azure-devops)
-* Github repo: N/A
-* Azure DevOps pipeline
+* Github repo: https://github.com/joechiu/platform-infra-pipelines.git
 
 ### TODO
 
@@ -48,5 +49,5 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 
 ### Pre Task
 * VWAN P2S Setup: (https://docs.microsoft.com/en-us/azure/virtual-wan/virtual-wan-point-to-site-portal)
-* Private DNS nonprod.az.officehq.com.au
+* Azure DNS forwarder
 

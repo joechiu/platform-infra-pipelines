@@ -1,0 +1,51 @@
+---
+- hosts: local
+  vars:
+    tf:    "/adp/aks/mssql/tf"
+    tmptf: "/tmp/tf"
+    tffile:
+      - { dir: "{{ tmptf }}", name: "terraform.tfvars" }
+  tasks:
+  - name: Run Terraform to create AKS cluster
+    shell: |
+      [ -d {{ tmptf }} ] && rm -rf {{ tmptf }}
+      cp -rf {{ tf }} {{ tmptf }}
+
+  - name: Transfer Dockerfile template
+    ansible.builtin.template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ tffile }}"
+
+  - name: Run Terraform to create AKS cluster
+    shell: |
+      cd {{ tmptf }} 
+      terraform init
+      terraform apply --auto-approve
+      terraform output -raw resource_group_name > {{ rgfile }}
+      terraform output -raw kubernetes_cluster_name > {{ clusterfile }}
+      scp {{ rgfile }} work:{{ rgfile }}
+      scp {{ clusterfile }} work:{{ clusterfile }}
+
+- hosts: mssql
+  become: yes
+  vars:
+    path: /opt/aks/mssql
+    dockerfile:
+      - { dir: '/tmp', name: 'docker-compose.yml' }
+      - { dir: '/tmp', name: 'install.sh' }
+    port: 1433:1433
+
+  tasks:
+  - name: Create the persistent volume claim in Kubernetes and build mssql 
+    shell: |
+      echo "az aks get-credentials --resource-group $(cat {{ rgfile }}) --name $(cat {{ clusterfile }})" > /tmp/foo
+      /usr/local/bin/az aks get-credentials --resource-group $(cat {{ rgfile }}) --name $(cat {{ clusterfile }}) > /tmp/get-cred 2>&1
+      cd {{ path }}
+      kubectl create secret generic mssql --from-literal=SA_PASSWORD={{ sapass }}
+      kubectl create -f pv-pvc.yml
+      kubectl create -f deploy.yml
+      
+

@@ -1,0 +1,7 @@
+---
+rgfile: /tmp/aks-rg
+clusterfile: /tmp/aks-cluster
+appId: "{{ appId }}"
+password: "{{ password }}"
+sapass: "'{{ sapass }}'"
+
