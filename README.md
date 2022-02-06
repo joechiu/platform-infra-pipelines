@@ -14,6 +14,9 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 * Create VHub Connections
 * Generate VM Hashicorp
 * Create Virtual Machines
+* Create Teamcity VM
+* Create RabbitMQ VM
+* Create Tentacle VM
 * Create MSSQL VM
 * Create MariaDB VM (Skipped)
 * Create Windows VM (Skipped)
