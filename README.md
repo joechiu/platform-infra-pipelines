@@ -6,7 +6,7 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 
 ### QA Deployment Demo
 
-[![Build Status](https://dev.azure.com/joeHMchiu/platform-infra-pipelines/_apis/build/status/platform-infra-pipelines?branchName=master)](https://dev.azure.com/joeHMchiu/platform-infra-pipelines/_build/latest?definitionId=14&branchName=master)
+[![Build Status](https://dev.azure.com/joeHMchiu/platform-infra-pipelines/_apis/build/status/joechiu.platform-infra-pipelines?branchName=master)](https://dev.azure.com/joeHMchiu/platform-infra-pipelines/_build/latest?definitionId=15&branchName=master)
 
 * Pipelines (git clone https://github.com/joechiu/platform-infra-pipelines.git)
 * Create Resource Groups
