@@ -1,0 +1,11 @@
+---
+- hosts: dns
+  become: yes
+  vars:
+    fdsh: /tmp/forwarderSetup.sh
+    log: /tmp/dns-build.log
+  tasks:
+  - name: Install DNS forwarder
+    script: "{{ fdsh }}"
+
+

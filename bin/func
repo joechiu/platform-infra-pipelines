@@ -1,0 +1,23 @@
+
+
+function shout {
+  printf "${sm}${bo}${y}%s${rs}\n" "$1"
+}
+
+function say {
+  printf "\t${c}%s${rs}\n" "$1"
+}
+
+function warn {
+  printf "\t${y}%s${rs}\n" "$1"
+}
+
+function note {
+  printf "  ${g}--- %s${rs}\n" "$1"
+}
+
+function absdir {
+  path_filename="$(cd "$(dirname "$0")"; pwd -P)/$(basename "$0")"
+  path=$(dirname $path_filename)
+  printf $path
+}

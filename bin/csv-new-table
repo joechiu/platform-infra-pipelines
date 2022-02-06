@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+
+BEGIN {
+  push @INC, "/Users/joechiu/perl5/perlbrew/perls/perl-5.28.0/lib/site_perl/5.28.0";
+};
+use strict;
+use Text::CSV;
+use Text::ANSITable;
+use List::Util qw( min max );
+
+binmode(STDOUT, ":utf8");
+
+my $t = Text::ANSITable->new;
+# Text::ANSITable styles
+# https://metacpan.org/dist/Text-ANSITable/view/script/ansitable-list-border-styles
+$t->border_style('UTF8::SingleLine');  # if not, a nice default is picked
+
+my @data;
+my @lengths;
+my $csv = Text::CSV->new;
+my @h;
+
+while (my $row = $csv->getline(*ARGV)) {
+  push @h, [ map { length } @$row ];
+  push @data, [ @$row ]; 
+};
+
+# get the gap length from the columns
+my $lx = 2 + 3*(scalar(@{$h[0]}) - 1) + 2; # init column gaps
+for (my $nn=0; $nn<@{$h[0]}; $nn++) {
+  $lx += max ( map { @{$_}[$nn] } @h );
+}
+system "echo $lx >/tmp/csv-table-gap";
+
+exit print '-'x10," no data ",'-'x10,"\n" if scalar @data < 2;
+
+my $nn = 0;
+while (@data) {
+  my $d = shift @data;
+  if ($nn) {
+    $t->add_row($d);
+  } else {
+    $t->columns($d);
+  }
+  $nn++;
+}
+
+print $t->draw;
+

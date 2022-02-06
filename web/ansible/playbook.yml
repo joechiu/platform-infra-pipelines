@@ -1,0 +1,12 @@
+---
+- hosts: win
+  vars_files:
+    - vars.yml
+  tasks:
+   - name: Ping Windows Hosts
+     win_ping:
+
+   - name: Copy a files from local to remote
+     win_copy:
+       src: "{{src}}"
+       dest: "{{dest}}"

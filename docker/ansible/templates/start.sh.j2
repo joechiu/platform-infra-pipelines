@@ -1,0 +1,30 @@
+#!/bin/bash
+
+print_header() {
+  lightcyan='\033[1;36m'
+  nocolor='\033[0m'
+  echo -e "${lightcyan}$1${nocolor}"
+}
+
+# print_header "Install Ansible with Azure collections"
+# pip3 install ansible
+# curl -O https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
+# pip3 install -r requirements-azure.txt
+# rm requirements-azure.txt
+# ansible-galaxy collection install azure.azcollection
+
+print_header "Install Azure CLI"
+pip3 install azure-cli
+pip3 install --upgrade requests
+
+print_header "Setting Timezone"
+/bin/bash set_timezone.sh
+
+# print_header "Install Perl JSON modules..."
+# cpanm install JSON
+# cpanm install JSON::Parse
+
+echo "--- DONE ---"
+
+/bin/bash
+

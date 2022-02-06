@@ -1,0 +1,42 @@
+---
+- hosts: db
+  become: yes
+  vars:
+    encfile: { dir: '/etc/my.cnf.d', name: 'enc.cnf' }
+    repofile: { dir: '/etc/yum.repos.d', name: 'mariadb.repo' }
+    datafile: mysql-all-dbs
+    encshell: enc.sh
+  tasks:
+  - name: Transfer MariaDB repo template 
+    ansible.builtin.template:
+      src: "{{ repofile.name }}.j2"
+      dest: "{{ repofile.dir }}/{{ repofile.name }}"
+      mode: '0644'
+
+  - name: Install mariadb
+    yum:
+      name: mariadb-server
+      state: present
+
+  - name: Extract data file to tmp
+    unarchive:
+      src: "{{ datafile }}.zip"
+      dest: /tmp
+
+  - name: Create encryption files
+    script: "{{ encshell }}"
+
+  - name: Transfer encryption conf 
+    ansible.builtin.template:
+      src: "{{ encfile.name }}.j2"
+      dest: "{{ encfile.dir }}/{{ encfile.name }}"
+      mode: '0644'
+
+  - name: Start mysql server and enable it on reboot
+    service: name=mariadb state=restarted enabled=true 
+
+  - name: Restor the backup data
+    shell: |
+      cd /tmp
+      cat "{{ datafile }}.sql" | mysql
+      

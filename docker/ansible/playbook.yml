@@ -1,0 +1,47 @@
+---
+- hosts: local
+  vars_files:
+    - "vars.yml"
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+  tasks:
+  - name: check ssh connection
+    script: "{{tester}} {{sshname}} {{logfile}}"
+
+- hosts: iac
+  become: yes
+  vars_files:
+    - "vars.yml"
+  vars_files:
+    - "vars.yml"
+  vars:
+    iacpath: /opt/iac
+    dockerrepo: "https://download.docker.com/linux/centos/docker-ce.repo"
+    dockerfile: 
+      - { dir: '/tmp', name: 'Dockerfile' }
+      - { dir: '/tmp', name: 'start.sh' }
+      - { dir: '/tmp', name: 'set_timezone.sh' }
+      - { dir: '/tmp', name: 'install.sh' }
+    log: /tmp/docker-build.log
+  tasks:
+  - name: Transfer Dockerfile template 
+    ansible.builtin.template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ dockerfile }}"
+
+  - name: Add docker repository and install Docker / iac-box
+    shell: |
+      echo "{{ env }}" > /etc/env
+      sed -ie '2i \\nPS1="[\\u@$(cat /etc/env) \\W]\\$ "' /etc/bashrc
+      mkdir -p {{ iacpath }}
+      yum-config-manager --add-repo {{ dockerrepo }}
+      rm -rf /var/lib/yum/history 
+      cd /tmp
+      nohup /tmp/install.sh > /tmp/yum-docker-install.out &
+
+
+

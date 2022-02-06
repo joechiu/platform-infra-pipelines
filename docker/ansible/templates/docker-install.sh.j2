@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd /tmp
+docker build . -t iac-box > {{ log }}
+docker run --restart=always -dit -v {{ iacpath }}:{{ iacpath }} iac-box
+

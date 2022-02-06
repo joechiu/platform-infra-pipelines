@@ -1,0 +1,51 @@
+---
+- hosts: local
+  vars_files:
+    - "vars.yml"
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+  tasks:
+  - name: check ssh connection
+    script: "{{tester}} {{sshname}} {{logfile}}"
+
+- hosts: rabbitmq
+  become: yes
+  vars_files:
+    - "vars.yml"
+  vars:
+    apppath: /opt/rabbitmq
+    dockerrepo: "https://download.docker.com/linux/centos/docker-ce.repo"
+    dockerfile: 
+      - { dir: '/tmp', name: 'docker-compose.yml' }
+      - { dir: '/tmp', name: 'rabbitmq.sh' }
+      - { dir: '/tmp', name: 'rabbitmq-docker-compose.yml' }
+      - { dir: '/tmp', name: 'rabbitmq-install.sh' }
+    volume: /opt/rabbitmq:/var/opt/rabbitmq
+    
+  tasks:
+  - name: Transfer Dockerfile template 
+    ansible.builtin.template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ dockerfile }}"
+
+  - name: Add docker repository
+    shell: |
+      mkdir -p {{ apppath }}
+      yum-config-manager --add-repo {{ dockerrepo }}
+      rm -rf /var/lib/yum/history 
+
+  - name: build docker rabbitmq
+    shell: |
+      echo "{{ env }}" > /etc/env
+      sed -ie '2i \\nPS1="[\\u@$(cat /etc/env) \\W]\\$ "' /etc/bashrc
+      nohup /tmp/rabbitmq-install.sh > /tmp/rabbitmq-yum-docker-install.out &
+
+
+
+
+
+

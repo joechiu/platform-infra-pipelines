@@ -1,0 +1,346 @@
+# devops: deployment demo
+
+parameters:
+  - name: VM
+    displayName: VM and App Only
+    type: boolean
+    default: false
+  - name: REGION
+    displayName: Region Option
+    default: 'AU'
+    type: string
+    values: 
+      - 'AU'
+      - 'UK'
+      - 'US'
+  - name: WE
+    displayName: Choose a Working Environment
+    default: 'DEV'
+    type: string
+    values: 
+      - 'DEMO'
+      - 'DELME'
+      - 'DEV'
+      - 'PROD'
+      - 'QA'
+      - 'STAGE'
+      - 'TEST'
+      - 'UAT'
+  - name: docker
+    displayName: IaC Server
+    type: boolean
+    default: false
+  - name: mariadb
+    displayName: MariaDB Server
+    type: boolean
+    default: false
+  - name: mssql
+    displayName: MSSQL Server
+    type: boolean
+    default: false
+  - name: teamcity
+    displayName: Teamcity Server
+    type: boolean
+    default: false
+  - name: tentacle
+    displayName: Tentacle Server
+    type: boolean
+    default: false
+  - name: app
+    displayName: App Windows Server
+    type: boolean
+    default: false
+  - name: web
+    displayName: Web Windows Server
+    type: boolean
+    default: false
+  - name: ipapp
+    displayName: App Windows Server with Existing IP
+    type: boolean
+    default: false
+  - name: ipweb
+    displayName: Web Windows Server with Existing IP
+    type: boolean
+    default: false
+
+
+# Set variables
+variables:
+  vm: ${{ parameters.VM}}
+  reg: ${{ lower(parameters.REGION) }}
+  env: ${{ lower(parameters.WE) }}
+  group: "hello-001"
+
+trigger:
+- main
+
+pool: eland-pool
+
+stages:
+- stage: Stage0
+  displayName: Stage 1
+  jobs:
+  - job: init
+    displayName: Display the file structure
+    steps: 
+    - script: |
+        $(System.DefaultWorkingDirectory)/bin/drawit.sh azp
+        $(System.DefaultWorkingDirectory)/bin/drawit.sh peanut
+        rm /tmp/dnsfile
+        rm -rf /tmp/workspace
+        dir
+        pwd
+        echo '$(Agent.BuildDirectory)'
+        echo '$(System.DefaultWorkingDirectory)'
+        # az account set --subscription "Non-Production Subscription"
+
+- stage: Stage1
+  displayName: Create RG and VNet
+  jobs:
+  - job: rgs
+    displayName: Create Resource Groups, Virtual Networks and Subnets
+    steps: 
+    - ${{ if ne(parameters.vm, true) }}:
+      - script: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          perl 1.create-rg-vnet-snet.pl $(env) $(reg)
+
+- stage: Stage2
+  displayName: Create IaC RG and VNet
+  jobs:
+  - job: iac
+    displayName: Create IaC RG and VNet 
+    continueOnError: true
+    steps: 
+    - ${{ if ne(parameters.vm, true) }}:
+      - script: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          perl 2.create-rg-mgmt-vnet-snet.pl $(env) $(reg)
+
+- stage: Stage3
+  displayName: Create DNS Links
+  jobs:
+  - job: dns
+    displayName: Create Private DNS Links
+    continueOnError: true
+    steps: 
+    - ${{ if ne(parameters.vm, true) }}:
+      - script: |
+          perl 3.private-dns-link.pl $(env) $(reg)
+
+- stage: Stage4
+  displayName: Create VHub Connections
+  jobs:
+  - job: vhub
+    displayName: Create VHub VNet Connections
+    steps: 
+    - ${{ if ne(parameters.vm, true) }}:
+      - script: |
+          perl 4.hub-vnet-connection.pl $(env) $(reg)
+
+- stage: Stage5
+  displayName: Create Management VHub Connections
+  jobs:
+  - job: vhub
+    displayName: Create Management VHub Connections
+    steps: 
+    - ${{ if ne(parameters.vm, true) }}:
+      - script: |
+          perl 5.hub-mgmt-vnet-connection.pl $(env) $(reg)
+
+- stage: Stage6
+  displayName: Generate VM Hashicorp and Ansible YAML
+  jobs:
+  - job: artifacts
+    displayName: Generate VM Hashicorp and Ansible YAML
+    steps: 
+    - script: |
+        perl 6.create-vms-artifacts.pl $(env) $(reg)
+
+- stage: Stage7
+  displayName: Create Virtual Machines
+  # condition: and(succeeded(), eq(variables.vm, 'true'))
+  jobs:
+  - job: mariadb
+    displayName: Create MariaDB VM 
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.mariadb, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/mariadb/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/mariadb/*/`
+          do
+            cd $d/ansible
+            ansible-playbook -i hosts playbook.yml
+          done
+  - job: mssql
+    displayName: Create MSSQL VM 
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.mssql, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/mssql/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve 
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/mssql/*/`
+          do
+            cd $d/ansible
+            ansible-playbook -i hosts playbook.yml
+          done
+  - job: docker
+    displayName: Create IaC VM 
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.docker, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/docker/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/docker/*/`
+          do
+            cd $d/ansible
+            ansible-playbook -i hosts playbook.yml
+          done
+  - job: teamcity
+    displayName: Create Teamcity VM and Service
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.teamcity, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/teamcity/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/tentacle/*/`
+          do
+            cd $d/ansible
+            ansible-playbook -i hosts playbook.yml
+          done
+  - job: tentacle
+    displayName: Create Tentacle VM and Service
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.tentacle, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/tentacle/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/tentacle/*/`
+          do
+            cd $d/ansible
+            ansible-playbook -i hosts playbook.yml
+          done
+  - job: app
+    displayName: Create App VM and App Application
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.app, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/app/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/app/*/`
+          do
+            echo "Reserved for Windows application"
+          done
+  - job: web
+    displayName: Create Web VM and Web Application
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.web, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/web/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/web/*/`
+          do
+            echo "Reserved for Windows application"
+          done
+  - job: ipapp
+    displayName: Create App VM and App Application with Existing IP
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.ipapp, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/ip-app/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/ip-app/*/`
+          do
+            echo "Reserved for Windows application"
+          done
+  - job: ipweb
+    displayName: Create Web VM and Web Application with Existing IP
+    continueOnError: true
+    steps: 
+    - ${{ if eq(parameters.ipweb, true) }}:
+      - bash: |
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh terraform
+          for d in `ls -d /tmp/workspace/ip-web/*/`
+          do
+            cd $d/tf
+            terraform init
+            terraform apply -auto-approve
+          done
+          $(System.DefaultWorkingDirectory)/bin/drawit.sh ansible
+          for d in `ls -d /tmp/workspace/ip-web/*/`
+          do
+            echo "Reserved for Windows application"
+          done
+
+- stage: Stage8
+  displayName: Clean Up
+  jobs:
+  - job: clean
+    displayName: Clean Up 
+    steps: 
+    - script: |
+        $(System.DefaultWorkingDirectory)/bin/drawit.sh tuesday
+        $(System.DefaultWorkingDirectory)/bin/drawit.sh peanut
+        # rm -rf /tmp/workspace
+
+
+
+
+

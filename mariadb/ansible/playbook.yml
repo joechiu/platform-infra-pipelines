@@ -1,0 +1,59 @@
+---
+- hosts: local
+  vars_files:
+    - "vars.yml"
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+  tasks:
+  - name: check ssh connection
+    script: "{{tester}} {{sshname}} {{logfile}}"
+
+- hosts: mariadb
+  become: yes
+  vars_files:
+    - "vars.yml"
+  vars:
+    encfile: { dir: '/etc/my.cnf.d', name: 'enc.cnf' }
+    repofile: { dir: '/etc/yum.repos.d', name: 'mariadb.repo' }
+    datafile: mysql-all-dbs
+    encshell: enc.sh
+  tasks:
+  - name: Transfer MariaDB repo template 
+    ansible.builtin.template:
+      src: "{{ repofile.name }}.j2"
+      dest: "{{ repofile.dir }}/{{ repofile.name }}"
+      mode: '0644'
+
+  - name: Install mariadb
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - mariadb-server
+      - MariaDB-backup
+      - firewalld
+
+  - name: start firewalld
+    service:
+      name: firewalld
+      state: started
+      enabled: yes
+
+  - name: permit mysql 3306 connection
+    firewalld:
+      port: 3306/tcp
+      permanent: yes
+      state: enabled
+      immediate: true
+
+  - name: Start mysql server and enable it on reboot
+    service: name=mariadb state=restarted enabled=true 
+
+  - name: Create a test user
+    shell: |
+      echo "{{ env }}" > /etc/env
+      sed -ie '2i \\nPS1="[\\u@$(cat /etc/env) \\W]\\$ "' /etc/bashrc
+      mysql -e "CREATE USER 'mysqladmin'@'%' IDENTIFIED BY 'OHQ#Passw0rd'; GRANT ALL PRIVILEGES ON *.* TO 'mysqladmin'@'%'; FLUSH PRIVILEGES;"
+
+

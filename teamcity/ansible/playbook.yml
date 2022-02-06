@@ -1,0 +1,61 @@
+---
+- hosts: local
+  vars_files:
+    - "vars.yml"
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+  tasks:
+  - name: check ssh connection
+    script: "{{tester}} {{sshname}} {{logfile}}"
+
+- hosts: teamcity
+  become: yes
+  vars_files:
+    - "vars.yml"
+  vars:
+    apppath: /opt/teamcity
+    dockerrepo: "https://download.docker.com/linux/centos/docker-ce.repo"
+    dirs:
+      - "/opt/teamcity"
+      - "/opt/teamcity/data"
+      - "/opt/teamcity/logs"
+      - "/opt/teamcity/agent"
+    dockerfile: 
+      - { dir: '/tmp', name: 'docker-compose.yml' }
+      - { dir: '/tmp', name: 'teamcity-install.sh' }
+    volume: /opt/teamcity:/var/opt/teamcity
+    
+  tasks:
+  - name: Creates directories
+    file:
+      path: "{{ item }}"
+      state: directory
+    with_items:
+      - "{{ dirs }}"
+
+  - name: Transfer Dockerfile template 
+    ansible.builtin.template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ dockerfile }}"
+
+  - name: Add docker repository
+    shell: |
+      mkdir -p {{ apppath }}
+      yum-config-manager --add-repo {{ dockerrepo }}
+      rm -rf /var/lib/yum/history 
+
+  - name: build docker teamcity
+    shell: |
+      echo "{{ env }}" > /etc/env
+      sed -ie '2i \\nPS1="[\\u@$(cat /etc/env) \\W]\\$ "' /etc/bashrc
+      nohup /tmp/teamcity-install.sh > /tmp/teamcity-yum-docker-install.out &
+
+
+
+
+
+

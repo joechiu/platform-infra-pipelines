@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+
+  sqlserver2017:
+    image: mcr.microsoft.com/mssql/server:2017-latest
+    container_name: sql2017
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Passw0rd
+      - MSSQL_PID=Developer
+    volumes:
+      - /opt/mssql:/var/opt/mssql
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "10" 
+        
+volumes:
+  sqlserver-data:

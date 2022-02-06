@@ -1,0 +1,52 @@
+---
+- hosts: local
+  vars_files:
+    - "vars.yml"
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+  tasks:
+  - name: check ssh connection
+    script: "{{tester}} {{sshname}} {{logfile}}"
+
+- hosts: mssql
+  become: yes
+  vars_files:
+    - "vars.yml"
+  vars:
+    sqlpath: /opt/mssql
+    dockerrepo: "https://download.docker.com/linux/centos/docker-ce.repo"
+    dockerfile: 
+      - { dir: '/tmp', name: 'docker-compose.yml' }
+      - { dir: '/tmp', name: 'install.sh' }
+    port: 1433:1433
+    volume: /opt/mssql:/var/opt/mssql
+    container: mcr.microsoft.com/mssql/server:2017-latest
+    name: mssql2017
+    
+  tasks:
+  - name: Transfer Dockerfile template 
+    ansible.builtin.template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ dockerfile }}"
+
+  - name: Add docker repository
+    shell: |
+      mkdir -p {{ sqlpath }}
+      yum-config-manager --add-repo {{ dockerrepo }}
+      rm -rf /var/lib/yum/history 
+
+  - name: build docker mssql
+    shell: |
+      echo "{{ env }}" > /etc/env
+      sed -ie '2i \\nPS1="[\\u@$(cat /etc/env) \\W]\\$ "' /etc/bashrc
+      nohup /tmp/install.sh > /tmp/yum-docker-install.out &
+
+
+
+
+
+

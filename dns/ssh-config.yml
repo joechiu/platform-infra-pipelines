@@ -1,0 +1,30 @@
+---
+- hosts: localhost
+  vars:
+    configfile: ~/.ssh/config
+    hosts: "{{ vm }}-{{ env }}"
+    marker: "Auto Terraform {{ hosts }}"
+    sshkey: /etc/keys/azure-ssh.key
+    user: azureuser
+    pub_ip: "{{ ip }}"
+  tasks:
+  - name: Show IP address
+    debug:
+      msg: "{{ hosts }} IP address: {{ pub_ip }}"
+  - name: Create SSH config file if not exists
+    file:
+      path: "{{ configfile }}"
+      mode: 0644
+      state: touch
+  - name: Add VM connection to the SSH config
+    blockinfile:
+      dest: "{{configfile}}"
+      marker: "# {mark} {{ marker }}"
+      block: |
+        Host {{ hosts }}
+          User {{user}}
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+          IdentityFile {{ sshkey }}
+          Hostname {{ pub_ip }}
+          Port 22

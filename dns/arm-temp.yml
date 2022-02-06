@@ -1,0 +1,22 @@
+---
+- hosts: localhost
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+    # forward IP
+    fdip: 168.63.129.16
+    vnet: 10.1.0.0/16
+    snet: 10.1.0.0/24
+    files: 
+      - { dir: '/tmp', name: 'azuredeploy.json' }
+      - { dir: '/tmp', name: 'forwarderSetup.sh' }
+  tasks:
+  - name: Convert ARM template 
+    template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ files }}"
+
+

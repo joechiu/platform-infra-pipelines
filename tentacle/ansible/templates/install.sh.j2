@@ -1,0 +1,19 @@
+#!/bin/bash
+
+apt-key adv --fetch-keys https://apt.octopus.com/public.key
+
+add-apt-repository "deb https://apt.octopus.com/ stretch main"
+
+apt-get update
+apt-get install tentacle -y
+
+echo "Setting up a Tentacle instance"
+/opt/octopus/tentacle/configure-tentacle.sh
+
+# echo "Running Tentacle interactively"
+# /opt/octopus/tentacle/Tentacle run --instance {{ instance }}
+
+echo "Running Tentacle as a service (systemd)"
+ /opt/octopus/tentacle/Tentacle service --install --start
+
+

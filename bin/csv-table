@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+
+BEGIN {
+  push @INC, "/Users/joechiu/perl5/perlbrew/perls/perl-5.28.0/lib/site_perl/5.28.0";
+};
+use strict;
+use Text::CSV;
+use List::Util qw( min max );
+
+my @data;
+my @lengths;
+my $csv = Text::CSV->new;
+my @h;
+
+while (my $row = $csv->getline(*ARGV)) {
+  my @fields = @$row;
+  push @h, [ map { length } @$row ];
+  foreach my $i (0..@fields-1) {   # find the longest width for each field
+    my $len = length($fields[$i]);
+    $lengths[$i] = $len if (!defined($lengths[$i]) || $lengths[$i] <= $len);
+  };
+  push @data, [ @fields ];  # stuff each record into an array of arrays
+};
+
+my $hdr='+';
+my $fmt='';
+
+foreach (@lengths) {
+  # build the header/separator line and the printf format string
+  $hdr .= '-' x ($_+2) . '+';
+  $fmt .= '| %-' . ($_) . 's ' ;
+};
+$fmt .= "|\n";
+$hdr .= "\n";
+
+# get the gap length from the columns
+my $lx = 2 + 3*(scalar(@{$h[0]}) - 1) + 2; # init column gaps
+for (my $nn=0; $nn<@{$h[0]}; $nn++) {
+  $lx += max ( map { @{$_}[$nn] } @h );
+}
+system "echo $lx >/tmp/csv-table-gap";
+
+# output the table
+exit print '-'x10," no data ",'-'x10,"\n" if scalar @data < 2;
+
+print $hdr;
+printf "$fmt", @{ $data[0] };
+print $hdr;
+
+foreach my $i (1..@data-1) {
+  printf $fmt, @{ $data[$i++] };
+}
+
+print $hdr;

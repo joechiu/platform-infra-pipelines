@@ -1,0 +1,25 @@
+red=`tput setaf 1`
+green=`tput setaf 2`
+yellow=`tput setaf 3`
+blue=`tput setaf 4`
+magenta=`tput setaf 5`
+cyan=`tput setaf 6`
+white=`tput setaf 7`
+reset=`tput sgr0`
+bold=`tput bold`
+blink=`tput blink`
+smul=`tput smul`
+
+r=`tput setaf 1`
+g=`tput setaf 2`
+y=`tput setaf 3`
+b=`tput setaf 4`
+m=`tput setaf 5`
+c=`tput setaf 6`
+w=`tput setaf 7`
+rs=`tput sgr0`
+bo=`tput bold`
+bd=`tput bold`
+bk=`tput blink`
+sm=`tput smul`
+

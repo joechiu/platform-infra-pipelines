@@ -1,0 +1,28 @@
+#!/bin/bash
+
+yum install docker-ce docker-ce-cli containerd.io -y
+
+sudo systemctl enable docker.service
+sudo systemctl enable containerd.service
+sudo systemctl start docker.service
+sudo systemctl start containerd.service
+
+cd /tmp
+
+while [ "" == "$(systemctl status docker.service | grep 'running')" ] 
+do 
+  echo "docker is not up" >> /tmp/run.out
+  sleep 3
+done
+
+docker images  >> /tmp/run.out 2>&1
+
+echo "Install docker-compose"
+curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln /usr/local/bin/docker-compose /usr/bin/
+
+echo "Install and initialize Docker image"
+docker pull jetbrains/teamcity-server
+docker run --restart=always -it -d --name teamcity-server -u root -v /opt/teamcity/data:/data/teamcity_server/datadir -v /opt/teamcity/logs:/opt/teamcity/logs -p 8111:8111 jetbrains/teamcity-server
+

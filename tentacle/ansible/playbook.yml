@@ -1,0 +1,41 @@
+---
+- hosts: local
+  vars_files:
+    - "vars.yml"
+  vars:
+    tester: "{{ playbook_dir }}/vm-connection.sh"
+    logfile: "/tmp/{{ sshname }}-vm-connections.log"
+  tasks:
+  - name: check ssh connection
+    script: "{{tester}} {{sshname}} {{logfile}}"
+
+- hosts: tentacle
+  become: yes
+  vars_files:
+    - "vars.yml"
+  vars:
+    apppath: /opt/tentacle
+    instance: foobar
+    dockerfile:
+      - { dir: '/tmp', name: 'install.sh' }
+
+  tasks:
+  - name: Transfer Dockerfile template
+    ansible.builtin.template:
+      src: "{{ item.name }}.j2"
+      dest: "{{ item.dir }}/{{ item.name }}"
+      mode: '0755'
+    with_items:
+      - "{{ dockerfile }}"
+
+  - name: Add docker repository
+    shell: |
+      mkdir -p {{ apppath }}
+      echo "{{ env }}" > /etc/env
+      echo '\nPS1="[\u@$(cat /etc/env) \W]\\$ "' >> /etc/bash.bashrc
+      echo '\nPS1="[\u@$(cat /etc/env) \W]\\$ "' >> /home/azureuser/.bashrc
+      echo '\nPS1="[\u@$(cat /etc/env) \W]\\$ "' >> ~/.bashrc
+
+#   - name: build tentacle
+#     shell: |
+#       nohup /tmp/install.sh > /tmp/tentacle-install.out &

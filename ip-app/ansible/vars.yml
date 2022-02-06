@@ -1,0 +1,6 @@
+ansible_user: adminuser
+ansible_port: 5985
+ansible_connection: winrm
+ansible_winrm_server_cert_validation: ignore
+src: ./tentacle-install.ps1
+dest: 'C:\'
