@@ -14,7 +14,7 @@ Create a CICD DepOps Pipeline for QA platform deployment demo.
 * Create VHub Connections
 * Generate VM Hashicorp
 * Create AKS Cluster
-* Create SQL Server in AKS Cluster
+* Create SQL Server - AKS Cluster
 * Create Virtual Machines
 * Create Teamcity VM
 * Create RabbitMQ VM
